@@ -243,6 +243,17 @@ function lexBlocks(src, refs) {
     node.lastLineNo = s.lineNumber;
   }
 
+  function endsWithBlankLine(block) {
+    for (let b = block; b; ) {
+      if (b.lastLineBlank) return true;
+      if (b.type === 'list' || b.type === 'item') {
+        if (!b.children.length) return false;
+        b = b.children[b.children.length - 1];
+      } else return false;
+    }
+    return false;
+  }
+
   function finalize(node) {
     node.open = false;
     if (node.type === 'paragraph') {
@@ -279,10 +290,16 @@ function lexBlocks(src, refs) {
     } else if (node.type === 'list') {
       const items = node.children;
       let tight = true;
-      for (let i = 0; i < items.length; i++) {
+      for (let i = 0; i < items.length && tight; i++) {
         const item = items[i];
-        if (item.lastLineBlank && i < items.length - 1) { tight = false; break; }
-        if (item.blankBetween) { tight = false; break; }
+        const nextItem = i + 1 < items.length;
+        if (nextItem && endsWithBlankLine(item)) { tight = false; break; }
+        const kids = item.children;
+        for (let k = 0; k < kids.length; k++) {
+          if ((nextItem || k + 1 < kids.length) && endsWithBlankLine(kids[k])) {
+            tight = false; break;
+          }
+        }
       }
       node.tight = tight;
     } else if (node.type === 'item') {
@@ -597,10 +614,6 @@ function lexBlocks(src, refs) {
     }
 
     closeUnmatched();
-
-    if (s.blank && container.children.length) {
-      container.children[container.children.length - 1].lastLineBlank = true;
-    }
 
     const isFenced = container.type === 'code' && container.fenced;
     const lastLineBlank = s.blank && !(
