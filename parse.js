@@ -615,6 +615,10 @@ function lexBlocks(src, refs) {
 
     closeUnmatched();
 
+    if (s.blank && container.children.length) {
+      container.children[container.children.length - 1].lastLineBlank = true;
+    }
+
     const isFenced = container.type === 'code' && container.fenced;
     const lastLineBlank = s.blank && !(
       container.type === 'blockquote' || isFenced ||
