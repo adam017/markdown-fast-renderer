@@ -1372,7 +1372,7 @@ function renderInlineNode(n) {
     case 'link': {
       const href = cleanUrl(n.dest);
       if (href === null) return renderInline(n.children);
-      let out = '<a href="' + href + '"';
+      let out = '<a href="' + (n.auto ? escAll(href) : escText(href)) + '"';
       if (n.title) out += ' title="' + escText(n.title) + '"';
       out += '>' + renderInline(n.children) + '</a>';
       return out;
