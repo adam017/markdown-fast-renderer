@@ -474,10 +474,25 @@ function lexBlocks(src, refs) {
 
     // setext heading
     if (container.type === 'paragraph' && (c === 61 || c === 45) && RE_SETEXT.test(ln.slice(nn))) {
-      container.type = 'heading';
-      container.level = c === 61 ? 1 : 2;
       let raw = container.lines.join('\n');
       raw = raw.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
+      // strip leading link reference definitions from the paragraph text
+      for (;;) {
+        const r = parseRefDef(raw, refs);
+        if (!r) break;
+        raw = raw.slice(r).replace(/^[ \t]*\n?/, '');
+        if (!raw.length) break;
+      }
+      if (!raw.length) {
+        container.open = false;
+        container.type = 'emptyref';
+        const p = addChild('paragraph', container.parent, { lines: [] });
+        p.text = '';
+        addLine();
+        return 2;
+      }
+      container.type = 'heading';
+      container.level = c === 61 ? 1 : 2;
       container.text = raw;
       container.open = false;
       s.tip = container.parent;
@@ -595,6 +610,9 @@ function lexBlocks(src, refs) {
     }
 
     if (consumed) continue;
+
+    // blankness is about what remains after container prefixes are consumed
+    s.blank = /^[ \t]*$/.test(s.line.slice(s.offset));
 
     s.allClosed = container === s.oldtip;
     s.lastMatched = container;
@@ -739,10 +757,13 @@ function parseRefDef(src, refs) {
   }
   const destRes = parseLinkDest(src, i);
   if (!destRes) return 0;
-  if (destRes.dest === '' && destRes.raw === '') return 0;
+  if (destRes.dest === '' && destRes.raw === '' && src[i] !== '<') return 0;
   i = destRes.end;
 
   // title (optional), preceded by whitespace
+  const eol = (k) => k >= src.length || src[k] === '\n';
+  if (!eol(i) && src[i] !== ' ' && src[i] !== '\t') return 0;
+
   let title = null;
   let j = i;
   let sawNl2 = false;
@@ -752,23 +773,26 @@ function parseRefDef(src, refs) {
     else if (c === '\n' && !sawNl2) { sawNl2 = true; j++; }
     else break;
   }
+  const titleLine = j;
+  const sameLine = !/\n/.test(src.slice(i, j));
   if (j > i) {
     const t = parseLinkTitle(src, j);
     if (t) {
       // title must be followed by end of line
       let k = t.end;
       while (k < src.length && (src[k] === ' ' || src[k] === '\t')) k++;
-      if (k >= src.length || src[k] === '\n') {
+      if (eol(k)) {
         title = t.title;
         i = k;
         if (i < src.length && src[i] === '\n') i++;
       } else {
-        // invalid title: definition ends after destination
+        if (sameLine) return 0;
         i = destRes.end;
         while (i < src.length && (src[i] === ' ' || src[i] === '\t')) i++;
         if (i < src.length && src[i] === '\n') i++;
       }
     } else {
+      if (sameLine && !eol(titleLine)) return 0;
       i = destRes.end;
       while (i < src.length && (src[i] === ' ' || src[i] === '\t')) i++;
       if (i < src.length && src[i] === '\n') i++;
