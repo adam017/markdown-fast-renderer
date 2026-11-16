@@ -254,7 +254,7 @@ function lexBlocks(src, refs) {
     node.open = false;
     if (node.type === 'paragraph') {
       let raw = node.lines.join('\n');
-      raw = raw.replace(/[ \t]+$/, '');
+      raw = raw.replace(/^(?:[ \t]*\n)+/, '');
       if (raw.length) {
         let guard = 0;
         for (;;) {
@@ -336,6 +336,10 @@ function lexBlocks(src, refs) {
     }
   }
 
+  function restBlank() {
+    return /^[ \t]*$/.test(s.line.slice(s.offset));
+  }
+
   function continueBlock(node) {
     switch (node.type) {
       case 'document':
@@ -350,7 +354,7 @@ function lexBlocks(src, refs) {
         return 1;
       }
       case 'item': {
-        if (s.blank) {
+        if (restBlank()) {
           if (node.children.length === 0) return 1;
           advanceNextNonspace();
           return 0;
@@ -379,15 +383,15 @@ function lexBlocks(src, refs) {
           return 0;
         }
         if (s.indent >= 4) { advanceOffset(4, true); return 0; }
-        if (s.blank) { advanceNextNonspace(); return 0; }
+        if (restBlank()) { advanceNextNonspace(); return 0; }
         return 1;
       }
       case 'html': {
-        if (s.blank && (node.htmlType === 6 || node.htmlType === 7)) return 1;
+        if (restBlank() && (node.htmlType === 6 || node.htmlType === 7)) return 1;
         return 0;
       }
       case 'paragraph':
-        return s.blank ? 1 : 0;
+        return restBlank() ? 1 : 0;
       default:
         return 1;
     }
