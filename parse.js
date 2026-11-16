@@ -924,7 +924,7 @@ function trimUrl(u) {
   return u;
 }
 
-function parseInline(text, refs) {
+function parseInline(text, refs, asNodes) {
   const nodes = [];
   const delims = [];
   const brackets = [];
@@ -1113,26 +1113,27 @@ function parseInline(text, refs) {
     if (c === 126) {
       let run = 0;
       while (pos + run < len && text.charCodeAt(pos + run) === 126) run++;
-      if (run === 2) {
-        const start = pos + 2;
-        if (start < len && !isSpaceCh(text[start])) {
+      if (run <= 2) {
+        const start = pos + run;
+        if (start < len && !isSpaceCh(text[start]) && text.charCodeAt(start) !== 126) {
           let k = start;
           let found = -1;
           while (k < len - 1) {
             if (text.charCodeAt(k) === 126) {
               let r2 = 0;
               while (k + r2 < len && text.charCodeAt(k + r2) === 126) r2++;
-              if (r2 === 2 && !isSpaceCh(text[k - 1])) { found = k; break; }
+              const prev = text.charCodeAt(k - 1);
+              if (r2 === run && !isSpaceCh(text[k - 1]) && prev !== 126 && prev !== 92) { found = k; break; }
               k += r2;
               continue;
             }
             k++;
           }
-          if (found >= start) {
+          if (found > start) {
             const content = text.slice(start, found);
             if (content.length) {
-              addNode({ t: 'del', children: parseInline(content, refs) });
-              pos = found + 2;
+              addNode({ t: 'del', children: parseInline(content, refs, true) });
+              pos = found + run;
               continue;
             }
           }
@@ -1223,7 +1224,7 @@ function parseInline(text, refs) {
 
   flush();
   processEmphasis(nodes, delims, 0);
-  return renderInline(nodes);
+  return asNodes ? nodes : renderInline(nodes);
 }
 
 function findLabelEnd(text, start) {
