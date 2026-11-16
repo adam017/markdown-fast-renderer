@@ -279,9 +279,14 @@ function lexBlocks(src, refs) {
       }
       node.text = text;
     } else if (node.type === 'html') {
-      const last = node.lines.length ? node.lastLineNo : 0;
       let text = node.lines.join('\n');
-      if (last < nLines || lines[nLines - 1] === '') text += '\n';
+      let lastNonBlank = node.lastLineNo || 0;
+      let more = false;
+      for (let k = lastNonBlank; k < nLines; k++) {
+        if (lines[k] !== '' && !/^[ \t]*$/.test(lines[k])) { more = true; break; }
+      }
+      if (node.htmlType <= 5) text += '\n';
+      else if (!more && /\n$/.test(src)) text += '\n';
       node.text = text;
     } else if (node.type === 'list') {
       const items = node.children;
