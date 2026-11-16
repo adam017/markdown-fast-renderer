@@ -266,7 +266,7 @@ function lexBlocks(src, refs) {
         }
       }
       node.text = raw;
-      node.empty = raw.length === 0;
+      node.empty = raw.length === 0 || /^[ \t]*$/.test(raw);
       if (node.task !== undefined) {
         node.text = node.text.replace(/^\[[ xX]\][ \t]+/, '');
       }
@@ -674,6 +674,8 @@ function lexBlocks(src, refs) {
         if (res === 2) { consumed = true; break; }
       }
     }
+
+    if (!consumed) s.blank = restBlank();
 
     if (matchedLeaf && !consumed) {
       // open code / html block accumulating a line
