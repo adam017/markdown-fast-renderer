@@ -427,7 +427,7 @@ function lexBlocks(src, refs) {
       advanceOffset(nn - s.offset + m[1].length, false);
       let text = ln.slice(s.offset).replace(/^[ \t]*/, '');
       if (/^#+[ \t]*$/.test(text)) text = '';
-      else text = text.replace(/[ \t]+#+[ \t]*$/, '');
+      else text = text.replace(/[ \t]+#+[ \t]*$/, '').replace(/[ \t]+$/, '');
       const node = addChild('heading', container, { level: m[1].length, text });
       node.open = false;
       s.tip = node.parent;
@@ -955,7 +955,7 @@ function parseInline(text, refs) {
       if (/[^ ]/.test(content) && content.startsWith(' ') && content.endsWith(' ')) {
         content = content.slice(1, -1);
       }
-      addNode({ t: 'code', v: escAll(decodeEntities(content)) });
+      addNode({ t: 'code', v: escAll(content) });
       pos = found + n;
       continue;
     }
