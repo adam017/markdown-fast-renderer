@@ -530,7 +530,7 @@ function lexBlocks(src, refs) {
     }
 
     let list;
-    const prev = container.children[container.children.length - 1];
+    const prev = s.tip;
     if (prev && prev.type === 'list' && prev.open && prev.ordered === ordered &&
         prev.delim === delim && prev.bullet === bullet) {
       list = prev;
@@ -576,9 +576,24 @@ function lexBlocks(src, refs) {
     s.lastMatched = container;
 
     if (!s.allClosed && !s.blank && s.tip.type === 'paragraph') {
-      // lazy paragraph continuation
-      addLine();
-      continue;
+      // lazy paragraph continuation — only if the line doesn't start a new block
+      findNextNonspace();
+      let lazy = true;
+      if (!s.indented) {
+        const cc = s.line.charCodeAt(s.nextNonspace);
+        if (cc === 62) lazy = false;
+        else if (cc === 35 && RE_ATX.test(s.line.slice(s.nextNonspace))) lazy = false;
+        else if (cc === 60 && htmlStart(s.line.slice(s.nextNonspace), true)) lazy = false;
+        else if ((cc === 96 || cc === 126) && RE_FENCE.test(s.line.slice(s.nextNonspace))) lazy = false;
+        else if (cc === 42 || cc === 43 || cc === 45 || (cc >= 48 && cc <= 57)) {
+          const rest = s.line.slice(s.nextNonspace);
+          if (RE_BULLET.test(rest) || RE_ORDERED.test(rest)) lazy = false;
+        }
+      }
+      if (lazy) {
+        addLine();
+        continue;
+      }
     }
 
     closeUnmatched();
