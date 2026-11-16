@@ -1380,7 +1380,7 @@ function renderInlineNode(n) {
     case 'img': {
       const src = cleanUrl(n.dest);
       if (src === null) return escText(n.alt);
-      let out = '<img src="' + src + '" alt="' + escText(n.alt) + '"';
+      let out = '<img src="' + escText(src) + '" alt="' + escText(n.alt) + '"';
       if (n.title) out += ' title="' + escText(n.title) + '"';
       out += '>';
       return out;
