@@ -434,7 +434,7 @@ function lexBlocks(src, refs) {
       else text = text.replace(/[ \t]+#+[ \t]*$/, '');
       const node = addChild('heading', container, { level: m[1].length, text });
       node.open = false;
-      s.tip = container;
+      s.tip = node.parent;
       return 2;
     }
 
@@ -481,7 +481,7 @@ function lexBlocks(src, refs) {
     if ((c === 42 || c === 45 || c === 95) && RE_HR.test(ln.slice(nn))) {
       const node = addChild('hr', container);
       node.open = false;
-      s.tip = container;
+      s.tip = node.parent;
       return 2;
     }
 
