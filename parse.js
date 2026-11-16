@@ -16,7 +16,7 @@ function escText(s) {
     const c = s.charCodeAt(i);
     if (c === 38 /* & */) {
       const rest = s.slice(i);
-      if (/^&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]{1,31});/.test(rest)) {
+      if (/^&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]{0,31});/.test(rest)) {
         out += '&';
       } else {
         out += '&amp;';
@@ -258,7 +258,7 @@ function lexBlocks(src, refs) {
     node.open = false;
     if (node.type === 'paragraph') {
       let raw = node.lines.join('\n');
-      raw = raw.replace(/^[ \t]+/, '').replace(/[ \t]+$/, '');
+      raw = raw.replace(/[ \t]+$/, '');
       if (raw.length) {
         let guard = 0;
         for (;;) {
@@ -1305,7 +1305,7 @@ function renderInline(nodes) {
 
 function renderInlineNode(n) {
   switch (n.t) {
-    case 'text': return escAll(decodeEntities(n.v));
+    case 'text': return escText(n.v);
     case 'lit': return escAll(n.v);
     case 'html': return n.v;
     case 'code': return '<code>' + n.v + '</code>';
