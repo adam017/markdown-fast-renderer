@@ -279,14 +279,20 @@ function lexBlocks(src, refs) {
       }
       node.text = text;
     } else if (node.type === 'html') {
-      let text = node.lines.join('\n');
-      let lastNonBlank = node.lastLineNo || 0;
-      let more = false;
-      for (let k = lastNonBlank; k < nLines; k++) {
-        if (lines[k] !== '' && !/^[ \t]*$/.test(lines[k])) { more = true; break; }
+      const ls = node.lines.slice();
+      if (ls.length && ls[ls.length - 1] === '' && node.lastLineNo === nLines) ls.pop();
+      let text = ls.join('\n');
+      const last = node.lastLineNo || 0;
+      const next = lines[last];
+      if (node.htmlType <= 5) {
+        text += '\n';
+      } else {
+        let more = false;
+        for (let k = last; k < nLines; k++) {
+          if (/[^ \t]/.test(lines[k])) { more = true; break; }
+        }
+        if (!more) text += '\n';
       }
-      if (node.htmlType <= 5) text += '\n';
-      else if (!more && /\n$/.test(src)) text += '\n';
       node.text = text;
     } else if (node.type === 'list') {
       const items = node.children;
@@ -1074,29 +1080,36 @@ function parseInline(text, refs) {
     }
 
     // strikethrough
-    if (c === 126 && pos + 1 < len && text.charCodeAt(pos + 1) === 126) {
-      const start = pos + 2;
-      if (start < len && !isSpaceCh(text[start])) {
-        let k = start;
-        let found = -1;
-        while (k < len - 1) {
-          if (text.charCodeAt(k) === 126 && text.charCodeAt(k + 1) === 126 && k > start - 1 && !isSpaceCh(text[k - 1])) {
-            found = k;
-            break;
+    if (c === 126) {
+      let run = 0;
+      while (pos + run < len && text.charCodeAt(pos + run) === 126) run++;
+      if (run === 2) {
+        const start = pos + 2;
+        if (start < len && !isSpaceCh(text[start])) {
+          let k = start;
+          let found = -1;
+          while (k < len - 1) {
+            if (text.charCodeAt(k) === 126) {
+              let r2 = 0;
+              while (k + r2 < len && text.charCodeAt(k + r2) === 126) r2++;
+              if (r2 === 2 && !isSpaceCh(text[k - 1])) { found = k; break; }
+              k += r2;
+              continue;
+            }
+            k++;
           }
-          k++;
-        }
-        if (found > start - 1 && found >= start) {
-          const content = text.slice(start, found);
-          if (content.length) {
-            addNode({ t: 'del', children: parseInline(content, refs) });
-            pos = found + 2;
-            continue;
+          if (found >= start) {
+            const content = text.slice(start, found);
+            if (content.length) {
+              addNode({ t: 'del', children: parseInline(content, refs) });
+              pos = found + 2;
+              continue;
+            }
           }
         }
       }
-      buf += '~~';
-      pos += 2;
+      buf += text.slice(pos, pos + run);
+      pos += run;
       continue;
     }
 
@@ -1403,7 +1416,7 @@ function renderTable(n) {
       }
       body += '<tr>\n' + cells + '</tr>\n';
     }
-    body = '<tbody>\n' + body + '</tbody>\n';
+    body = '<tbody>' + body + '</tbody>';
   }
   return '<table>\n<thead>\n' + header + '</thead>\n' + body + '</table>\n';
 }
