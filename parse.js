@@ -604,7 +604,7 @@ function lexBlocks(src, refs) {
         else if ((cc === 96 || cc === 126) && RE_FENCE.test(s.line.slice(s.nextNonspace))) lazy = false;
         else if (cc === 42 || cc === 43 || cc === 45 || (cc >= 48 && cc <= 57)) {
           const rest = s.line.slice(s.nextNonspace);
-          if (RE_BULLET.test(rest) || RE_ORDERED.test(rest)) lazy = false;
+          if (RE_HR.test(rest) || RE_BULLET.test(rest) || RE_ORDERED.test(rest)) lazy = false;
         }
       }
       if (lazy) {
