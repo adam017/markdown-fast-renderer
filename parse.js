@@ -88,17 +88,13 @@ const NAMED = {
 
 function decodeEntities(s) {
   if (s.indexOf('&') < 0) return s;
-  return s.replace(/&(?:#[0-9]{1,7}|#[xX][0-9a-fA-F]{1,6}|[a-zA-Z][a-zA-Z0-9]{1,31});/g, (m) => {
-    const body = m.slice(1, -1);
-    if (body[0] === '#') {
-      const cp = body[1] === 'x' || body[1] === 'X'
-        ? parseInt(body.slice(2), 16)
-        : parseInt(body.slice(1), 10);
-      if (!Number.isFinite(cp) || cp === 0 || cp > 0x10ffff) return '\ufffd';
-      try { return String.fromCodePoint(cp); } catch (e) { return '\ufffd'; }
-    }
-    const v = NAMED[body];
-    return v === undefined ? m : v;
+  return s.replace(/&#(?:[0-9]{1,7}|[xX][0-9a-fA-F]{1,6});/g, (m) => {
+    const body = m.slice(2, -1);
+    const cp = body[0] === 'x' || body[0] === 'X'
+      ? parseInt(body.slice(1), 16)
+      : parseInt(body, 10);
+    if (!Number.isFinite(cp) || cp === 0 || cp > 0x10ffff) return '\ufffd';
+    try { return String.fromCodePoint(cp); } catch (e) { return '\ufffd'; }
   });
 }
 
@@ -924,6 +920,16 @@ function parseInline(text, refs) {
       buf += '\\';
       pos++;
       continue;
+    }
+
+    // numeric character reference
+    if (c === 38 /* & */) {
+      const m = /^&#(?:[0-9]{1,7}|[xX][0-9a-fA-F]{1,6});/.exec(text.slice(pos));
+      if (m) {
+        buf += decodeEntities(m[0]);
+        pos += m[0].length;
+        continue;
+      }
     }
 
     // code span
